@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>심플 방명록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-5">
+
+    <div class="max-w-md mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="bg-blue-500 p-4">
+            <h1 class="text-white text-xl font-bold text-center">📝 한 줄 방명록</h1>
+        </div>
+
+        <div class="p-4 border-b">
+            <input type="text" id="nickname" placeholder="닉네임" 
+                class="w-full mb-2 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <textarea id="message" placeholder="메시지를 남겨주세요" 
+                class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+            <button onclick="send()" 
+                class="w-full mt-2 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition">
+                등록하기
+            </button>
+        </div>
+
+        <div id="list" class="divide-y max-h-96 overflow-y-auto">
+            <p class="p-4 text-center text-gray-400">불러오는 중...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 본인의 Firebase 설정값을 입력하세요
+        const firebaseConfig = {
+  apiKey: "AIzaSyCAuivkwGWS2GYwJVIDAVEhpeYqtetxd9g",
+  authDomain: "guestbook-fae49.firebaseapp.com",
+  projectId: "guestbook-fae49",
+  storageBucket: "guestbook-fae49.firebasestorage.app",
+  messagingSenderId: "584989442868",
+  appId: "1:584989442868:web:e8b42ad325da57cf4a1b61",
+  measurementId: "G-8K4H658RJR"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const guestbook = collection(db, "guestbook");
+
+        // 데이터 저장 함수
+        window.send = async () => {
+            const nick = document.getElementById('nickname').value;
+            const msg = document.getElementById('message').value;
+
+            if(!nick || !msg) return alert("내용을 입력해주세요!");
+
+            await addDoc(guestbook, {
+                name: nick,
+                text: msg,
+                date: serverTimestamp()
+            });
+
+            document.getElementById('message').value = ''; // 메시지 칸 비우기
+        };
+
+        // 실시간으로 데이터 가져오기
+        const q = query(guestbook, orderBy("date", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const listDiv = document.getElementById('list');
+            listDiv.innerHTML = ''; // 기존 목록 비우기
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const item = `
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-blue-600 text-sm">${data.name}</span>
+                            <span class="text-gray-400 text-xs">${data.date ? new Date(data.date.toDate()).toLocaleString() : '방금 전'}</span>
+                        </div>
+                        <p class="text-gray-700">${data.text}</p>
+                    </div>
+                `;
+                listDiv.innerHTML += item;
+            });
+        });
+    </script>
+</body>
+</html>
